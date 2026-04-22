@@ -69,6 +69,8 @@ class NoteController extends Controller
         $stats = \App\Models\StatistiqueMatiere::where('annee_univ', $annee)
                         ->get()->keyBy('matiere_id');
 
+        $matieresAutorisees = null;
+
         return view('notes.show', compact(
             'etudiant', 'semestres', 'evaluations', 'moyennes', 'stats', 'annee'
         ));
