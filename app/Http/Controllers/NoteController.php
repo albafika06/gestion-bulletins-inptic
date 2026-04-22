@@ -72,8 +72,8 @@ class NoteController extends Controller
         $matieresAutorisees = null;
 
         return view('notes.show', compact(
-            'etudiant', 'semestres', 'evaluations', 'moyennes', 'stats', 'annee'
-        ));
+    'etudiant', 'semestres', 'evaluations', 'moyennes', 'stats', 'annee', 'matieresAutorisees'
+));
     }
 
     // =========================================================
