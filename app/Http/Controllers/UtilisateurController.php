@@ -25,36 +25,96 @@ class UtilisateurController extends Controller
         return view('utilisateurs.create', compact('etudiants'));
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'login'         => 'required|unique:utilisateurs,login|max:80',
-            'mot_de_passe'  => 'required|min:6|confirmed',
-            'nom_affichage' => 'required|max:200',
-            'email'         => 'nullable|email|unique:utilisateurs,email',
-            'role'          => 'required|in:ADMIN,ENSEIGNANT,SECRETARIAT,ETUDIANT',
-            'etudiant_id'   => 'nullable|exists:etudiants,id',
-        ]);
+   public function store(Request $request)
+{
+    $request->validate([
+        'login'         => 'required|unique:utilisateurs,login|max:80',
+        'mot_de_passe'  => 'required|min:6|confirmed',
+        'nom_affichage' => 'required|max:200',
+        'email'         => 'required|email|unique:utilisateurs,email', // ✅ email obligatoire
+        'role'          => 'required|in:ADMIN,ENSEIGNANT,SECRETARIAT,ETUDIANT',
+        'etudiant_id'   => 'nullable|exists:etudiants,id',
+    ]);
 
-        $user = User::create([
-            'login'         => $request->login,
-            'mot_de_passe'  => Hash::make($request->mot_de_passe),
-            'nom_affichage' => $request->nom_affichage,
-            'email'         => $request->email,
-            'role'          => $request->role,
-            'etudiant_id'   => $request->role == 'ETUDIANT' ? $request->etudiant_id : null,
-            'actif'         => 1,
-        ]);
+    $user = User::create([
+        'login'         => $request->login,
+        'mot_de_passe'  => Hash::make($request->mot_de_passe),
+        'nom_affichage' => $request->nom_affichage,
+        'email'         => $request->email,
+        'role'          => $request->role,
+        'etudiant_id'   => $request->role == 'ETUDIANT' ? $request->etudiant_id : null,
+        'actif'         => 1,
+    ]);
 
-        JournalController::log(
-            'UTILISATEUR_CREE',
-            'Utilisateur créé : ' . $user->nom_affichage,
-            auth()->id(),
-            'Rôle : ' . $user->role
-        );
+    // ✅ Envoyer les identifiants par email
+    try {
+        \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($user, $request) {
+            $role = match($user->role) {
+                'ADMIN'       => 'Administrateur',
+                'ENSEIGNANT'  => 'Enseignant',
+                'SECRETARIAT' => 'Secrétariat Pédagogique',
+                'ETUDIANT'    => 'Étudiant',
+                default       => $user->role,
+            };
 
-        return redirect()->route('utilisateurs.index')->with('success', 'Utilisateur créé avec succès.');
+            $html = '
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                <div style="background:#0c447c;padding:24px;text-align:center;">
+                    <h1 style="color:#fff;margin:0;font-size:22px;">INPTIC — Gestion LP ASUR</h1>
+                </div>
+                <div style="padding:32px;background:#f8f9ff;">
+                    <h2 style="color:#1e2a3a;font-size:18px;">Bienvenue, ' . $user->nom_affichage . ' !</h2>
+                    <p style="color:#374151;">Votre compte a été créé avec succès. Voici vos identifiants de connexion :</p>
+                    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0;">
+                        <table style="width:100%;border-collapse:collapse;">
+                            <tr>
+                                <td style="padding:8px 0;color:#6b7280;font-size:13px;">Rôle</td>
+                                <td style="padding:8px 0;font-weight:600;color:#0c447c;">' . $role . '</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:8px 0;color:#6b7280;font-size:13px;">Login</td>
+                                <td style="padding:8px 0;font-weight:600;color:#1e2a3a;font-family:monospace;">' . $user->login . '</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:8px 0;color:#6b7280;font-size:13px;">Mot de passe</td>
+                                <td style="padding:8px 0;font-weight:600;color:#1e2a3a;font-family:monospace;">' . $request->mot_de_passe . '</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div style="background:#faeeda;border:1px solid #fac775;border-radius:8px;padding:12px 16px;font-size:12px;color:#633806;">
+                        <strong>⚠️ Sécurité :</strong> Nous vous recommandons de changer votre mot de passe lors de votre première connexion.
+                    </div>
+                    <div style="margin-top:24px;text-align:center;">
+                        <a href="' . config('app.url') . '"
+                           style="background:#2e7df7;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+                            Se connecter
+                        </a>
+                    </div>
+                </div>
+                <div style="background:#e5e7eb;padding:16px;text-align:center;font-size:11px;color:#6b7280;">
+                    © ' . date('Y') . ' INPTIC — Gestion Bulletins LP ASUR
+                </div>
+            </div>';
+
+            $message->to($user->email, $user->nom_affichage)
+                    ->subject('Vos identifiants de connexion — INPTIC LP ASUR')
+                    ->html($html);
+        });
+    } catch (\Exception $e) {
+        // Log l'erreur mais ne bloque pas la création
+        \Log::error('Email identifiants non envoyé : ' . $e->getMessage());
     }
+
+    JournalController::log(
+        'UTILISATEUR_CREE',
+        'Utilisateur créé : ' . $user->nom_affichage,
+        auth()->id(),
+        'Rôle : ' . $user->role
+    );
+
+    return redirect()->route('utilisateurs.index')
+        ->with('success', 'Utilisateur créé et identifiants envoyés à ' . $user->email);
+}
 
     public function show($id)
     {

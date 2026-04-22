@@ -60,12 +60,19 @@
                                required>
                     </div>
                     <div class="col-12">
-                        <label class="form-label-inptic">Email</label>
+                        <label class="form-label-inptic">
+                            Email <span style="color:#e24b4a;">*</span>
+                        </label>
                         <input type="email"
                                name="email"
                                class="form-control-inptic"
                                value="{{ old('email') }}"
-                               placeholder="email@inptic.ga">
+                               placeholder="email@domaine.com"
+                               required>
+                        <div style="font-size:11px;color:#6b7280;margin-top:4px;">
+                            <i class="fas fa-info-circle"></i>
+                            Les identifiants seront envoyés à cette adresse.
+                        </div>
                     </div>
                     <div class="col-12">
                         <label class="form-label-inptic">
@@ -123,9 +130,15 @@
                                required>
                     </div>
                     <div class="col-12">
-                        <div style="background:#faeeda; border:1px solid #fac775; border-radius:8px; padding:12px 16px; font-size:12px; color:#633806;">
+                        <div style="background:#faeeda;border:1px solid #fac775;border-radius:8px;padding:12px 16px;font-size:12px;color:#633806;">
                             <i class="fas fa-shield-alt me-2"></i>
                             Le mot de passe doit contenir au moins <strong>6 caractères</strong>.
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div style="background:#e6f1fb;border:1px solid #b3d4f5;border-radius:8px;padding:12px 16px;font-size:12px;color:#0c447c;">
+                            <i class="fas fa-envelope me-2"></i>
+                            Les identifiants (login + mot de passe) seront <strong>automatiquement envoyés</strong> à l'adresse email renseignée.
                         </div>
                     </div>
                 </div>
